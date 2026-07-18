@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChessCipher — Steganographic Chess Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- ============================================================
+       RAIL — fixed left icon navigation (replaces the old top navbar)
+       ============================================================ -->
+      <nav class="rail" id="navbar">
+        <a class="rail-logo" href="#">
+          <span class="rail-logo-icon">♜</span>
+          <span class="rail-logo-text">Cipher</span>
+        </a>
+        <div class="rail-divider"></div>
+        <div class="rail-tabs">
+          <button
+            class="nav-tab active"
+            data-page="encode"
+            onclick="showPage('encode', this)"
+          >
+            <span class="ico">✉</span><span class="lbl">Encode</span>
+          </button>
+          <button
+            class="nav-tab"
+            data-page="decode"
+            onclick="showPage('decode', this)"
+          >
+            <span class="ico">&#128269;</span><span class="lbl">Decode</span>
+          </button>
+          <button
+            class="nav-tab"
+            data-page="deaddrop"
+            onclick="showPage('deaddrop', this)"
+          >
+            <span class="ico">&#9822;</span><span class="lbl">Dead Drop</span>
+          </button>
+          <button
+            class="nav-tab"
+            data-page="about"
+            onclick="showPage('about', this)"
+          >
+            <span class="ico">&#128214;</span><span class="lbl">Guide</span>
+          </button>
+        </div>
+        <div class="rail-bottom">
+          <span
+            class="nav-link"
+            title="Infopedia Tube"
+            onclick="
+              window.open('https://www.youtube.com/@Infopedia_Tube_', '_blank')
+            "
+            >&#9654;</span
+          >
+          <button class="nav-support" onclick="openModal('supportModal')">
+            <span class="ico">&#9822;</span><span class="lbl">Support</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="main-area">
+        <!-- Mobile info bar -->
+        <div class="nav-mobile-bar">
+          <span
+            class="yt-inline"
+            onclick="
+              window.open('https://www.youtube.com/@Infopedia_Tube_', '_blank')
+            "
+            >&#9654; Infopedia Tube</span
+          >
+          <span class="upi-inline" onclick="copyNavUPI()" id="navUpiBtn"
+            >UPI: rabindrachoudhary125@oksbi</span
+          >
+        </div>
+
+        <!-- Support strip -->
+        <div
+          id="supportStrip"
+          style="
+            padding: 6px 16px;
+            text-align: center;
+            font-size: 11.5px;
+          "
+        >
+          Feel free to donate to help keep this project live and running
+          ❤️ &nbsp;
+          <span
+            style="cursor: pointer; text-decoration: underline"
+            onclick="openModal('supportModal')"
+            >Support here</span
+          >
+        </div>
+
+        <!-- ============================================================
+         ENCODE PAGE
+         ============================================================ -->
+        <div id="page-encode" class="page active">
+          <div class="main-wrap">
+            <div class="hero fade-up">
+              <div class="hero-pill">// 01 — Steganographic Engine</div>
+              <h1 class="hero-title">Hide Messages in Chess Games</h1>
+              <p class="hero-sub">
+                Convert any text into a legally playable chess game. Play it
+                anywhere — then decode the hidden message.
+              </p>
+            </div>
+
+            <!-- Panel: message input -->
+            <div class="card fade-up-2">
+              <div class="card-header">
+                <div class="card-icon">✉</div>
+                <div class="card-title">Encode a Message</div>
+                <div class="card-badge">PGN Channel</div>
+              </div>
+
+              <div class="field">
+                <label class="field-label"
+                  >Step 1 — Encryption Key (optional)</label
+                >
+                <input
+                  type="text"
+                  class="field-input"
+                  id="encKey"
+                  placeholder="Type a password, or paste a generated FEN key"
+                  oninput="onEncInputChange()"
+                />
+                <div class="key-status" id="encKeyStatus">
+                  Public — no key, anyone can decode this
+                </div>
+              </div>
+              <div class="btn-row" style="margin-bottom: 16px">
+                <button class="btn btn-ghost btn-sm" onclick="generateFENKey()">
+                  Generate FEN Key ♛
+                </button>
+              </div>
+
+              <div class="field">
+                <label class="field-label">Step 2 — Message to Hide</label>
+                <textarea
+                  class="field-textarea"
+                  id="encMsg"
+                  placeholder="Type your secret message here...&#10;Longer messages require more moves."
+                  rows="5"
+                  oninput="onEncInputChange()"
+                ></textarea>
+              </div>
+
+              <div class="btn-row">
+                <button class="btn btn-primary" onclick="doEncode()">
+                  Step 3 — Generate PGN ♟
+                </button>
+                <button class="btn btn-ghost" onclick="clearEncode()">
+                  Clear
+                </button>
+              </div>
+              <div id="encAlert"></div>
+            </div>
+
+            <!-- Panel: PGN result -->
+            <div class="card fade-up-3" id="encResultCol">
+              <div class="card-header">
+                <div class="card-icon">♟</div>
+                <div class="card-title">Generated PGN</div>
+                <div class="card-badge" id="moveCountBadge">0 moves</div>
+              </div>
+              <div
+                class="alert alert-err"
+                id="pgnStaleWarning"
+                style="display: none; margin: 0 18px 12px"
+              >
+                ⚠ Message or key changed since this PGN was generated —
+                click "Generate PGN" again to update it.
+              </div>
+              <div class="stats-row" id="encStats" style="display: none">
+                <div class="stat-chip">Bits: <b id="sBits">0</b></div>
+                <div class="stat-chip">Moves: <b id="sMoves">0</b></div>
+                <div class="stat-chip">Chars: <b id="sChars">0</b></div>
+              </div>
+              <div class="out-header">
+                <span class="out-label">PGN Output</span>
+                <button class="copy-btn" onclick="copyEl('pgnOut')">
+                  [ copy ]
+                </button>
+              </div>
+              <div class="out-box" id="pgnOut">
+                Your encoded PGN will appear here. Tip: Copy and paste into
+                Chess.com, Lichess, or any chess platform to play the game
+                naturally.
+              </div>
+
+              <div class="divider"></div>
+
+              <!-- Board preview -->
+              <div id="encBoardSection" style="display: none">
+                <div class="out-header" style="margin-bottom: 8px">
+                  <span class="out-label">Position Preview</span>
+                  <div class="ctrl-row" style="margin: 0">
+                    <button class="ctrl-btn" onclick="previewPrev()">
+                      &#9664;
+                    </button>
+                    <span
+                      class="ctrl-btn"
+                      id="previewMoveLabel"
+                      style="min-width: 48px; text-align: center"
+                      >0/0</span
+                    >
+                    <button class="ctrl-btn" onclick="previewNext()">
+                      &#9654;
+                    </button>
+                    <button class="ctrl-btn" onclick="previewReset()">
+                      &#8634;
+                    </button>
+                  </div>
+                </div>
+                <div class="board-wrap">
+                  <div class="board-coord-wrap">
+                    <div class="board-grid" id="boardEncode"></div>
+                  </div>
+                </div>
+                <div
+                  class="decode-status"
+                  id="encStatus"
+                  style="margin-top: 8px"
+                >
+                  Encoding complete.
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel: Random FEN Secret Key (hidden initially) -->
+            <div class="card fade-up-3" id="fenCard" style="display: none">
+              <div class="card-header">
+                <div class="card-icon">♛</div>
+                <div class="card-title">Random FEN Secret Key</div>
+                <div class="card-badge">Key Generator</div>
+              </div>
+              <div id="fenOut"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+         DECODE PAGE
+         ============================================================ -->
+        <div id="page-decode" class="page">
+          <div class="main-wrap">
+            <div class="hero fade-up">
+              <div class="hero-pill">// 02 — Cinematic Decode</div>
+              <h1 class="hero-title">Decode the Hidden Message</h1>
+              <p class="hero-sub">
+                Paste any PGN from Chess.com, Lichess, or any platform. Watch
+                the game replay as the message is extracted.
+              </p>
+            </div>
+
+            <!-- Panel: input -->
+            <div class="card fade-up-2">
+              <div class="card-header">
+                <div class="card-icon">&#128269;</div>
+                <div class="card-title">Decode Input</div>
+                <div class="card-badge" id="fmtBadge">PGN Channel</div>
+              </div>
+              <div class="field">
+                <label class="field-label">PGN String</label>
+                <textarea
+                  class="field-textarea"
+                  id="decInput"
+                  placeholder="Paste PGN from Chess.com, Lichess, or any chess platform..."
+                  rows="8"
+                  oninput="detectFmt()"
+                ></textarea>
+              </div>
+              <div class="field">
+                <label class="field-label">Decryption Key</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  id="decKey"
+                  placeholder="Type the password, or paste the FEN key"
+                  oninput="onDecInputChange()"
+                />
+                <div class="key-status" id="decKeyStatus">
+                  Leave blank if this was encoded in public mode
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="ctrl-row" style="margin-bottom: 10px">
+                <span
+                  style="
+                    font-size: 10.5px;
+                    color: var(--ink-muted);
+                    font-family: var(--font-mono);
+                  "
+                  >Speed:</span
+                >
+                <button class="ctrl-btn active" id="spd1" onclick="setSpd(1)">
+                  1x
+                </button>
+                <button class="ctrl-btn" id="spd2" onclick="setSpd(2)">
+                  2x
+                </button>
+                <button class="ctrl-btn" id="spd0" onclick="setSpd(0)">
+                  Instant
+                </button>
+                <div class="ctrl-spacer"></div>
+                <div
+                  class="toggle"
+                  id="sndToggle"
+                  onclick="toggleSnd()"
+                  style="transform: scale(0.85)"
+                ></div>
+                <span style="font-size: 11px; color: var(--ink-muted)"
+                  >Sound</span
+                >
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-teal btn-full" onclick="doDecode()">
+                  Decode Message &#11042;
+                </button>
+                <button class="btn btn-ghost" onclick="skipAnim()">Skip</button>
+              </div>
+              <div id="decAlert"></div>
+            </div>
+
+            <!-- Panel: cinematic result -->
+            <div class="card fade-up-3" id="decResultPanel">
+              <div class="card-header">
+                <div class="card-icon">&#9674;</div>
+                <div class="card-title">Live Decode</div>
+                <div class="card-badge" id="decodeChanBadge">PGN Channel</div>
+              </div>
+
+              <div style="padding: 0 18px">
+                <div class="board-wrap">
+                  <div class="board-coord-wrap">
+                    <div class="board-grid" id="boardDecode"></div>
+                  </div>
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill" id="progBar"></div>
+                </div>
+                <div class="decode-status" id="decStatus">
+                  <span>Awaiting input...</span>
+                </div>
+                <div class="out-header" style="margin-bottom: 6px">
+                  <span class="out-label">Decoded Message</span>
+                  <button class="copy-btn" onclick="copyEl('msgOut')">
+                    [ copy ]
+                  </button>
+                </div>
+              </div>
+              <div class="msg-reveal" id="msgOut">
+                <span style="color: var(--ink-muted); font-size: 12px"
+                  >Message will appear here with typing animation...</span
+                >
+              </div>
+              <div style="padding: 0 18px 18px">
+                <div class="ctrl-row">
+                  <button class="ctrl-btn" onclick="replayDec()">
+                    &#8634; Replay
+                  </button>
+                  <button
+                    class="ctrl-btn"
+                    id="pauseBtn"
+                    onclick="togglePause()"
+                  >
+                    &#9646;&#9646; Pause
+                  </button>
+                  <div class="ctrl-spacer"></div>
+                  <span
+                    id="sndLabel"
+                    style="
+                      font-size: 10.5px;
+                      color: var(--ink-muted);
+                      font-family: var(--font-mono);
+                    "
+                    >&#9834; off</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+         DEAD DROP PAGE
+         ============================================================ -->
+        <div id="page-deaddrop" class="page">
+          <div class="main-wrap">
+            <div class="hero fade-up">
+              <div class="hero-pill">// 03 — Covert Channel</div>
+              <h1 class="hero-title">Create a Dead Drop</h1>
+              <p class="hero-sub">
+                Generate a reference card. Share only the pointer — the data
+                lives on the chess platform.
+              </p>
+            </div>
+
+            <div class="card fade-up-2">
+              <div class="card-header">
+                <div class="card-icon">&#9820;</div>
+                <div class="card-title">Dead Drop Configuration</div>
+              </div>
+              <div class="two-col">
+                <div class="field">
+                  <label class="field-label">Platform</label>
+                  <select class="field-select" id="ddPlat">
+                    <option>Chess.com</option>
+                    <option>Lichess.org</option>
+                    <option>Chess24</option>
+                    <option>Custom Platform</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Location Type</label>
+                  <select class="field-select" id="ddLoc">
+                    <option>Profile — Latest Game</option>
+                    <option>Profile — Game #N</option>
+                    <option>Club Game Archive</option>
+                    <option>Tournament Game</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Username / Handle</label>
+                  <input
+                    type="text"
+                    class="field-input"
+                    id="ddHandle"
+                    placeholder="e.g. GrandmasterX"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label">Game Index</label>
+                  <input
+                    type="text"
+                    class="field-input"
+                    id="ddIdx"
+                    placeholder="e.g. 42 or 'latest'"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label"
+                  >Key Hint (do not include actual key)</label
+                >
+                <input
+                  type="text"
+                  class="field-input"
+                  id="ddHint"
+                  placeholder="e.g. 'use the agreed phrase'"
+                />
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-primary" onclick="doDeadDrop()">
+                  Generate Dead Drop Card
+                </button>
+                <button class="btn btn-ghost" onclick="clearDD()">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="card fade-up-3" id="ddResultCard" style="display: none">
+              <div class="card-header">
+                <div class="card-icon">&#9822;</div>
+                <div class="card-title">Dead Drop Reference Card</div>
+                <button
+                  class="copy-btn"
+                  style="margin-left: auto"
+                  onclick="copyEl('ddCardOut')"
+                >
+                  [ copy card ]
+                </button>
+              </div>
+              <div class="dd-card" id="ddCardOut"></div>
+              <div class="divider"></div>
+              <p
+                style="
+                  font-size: 11.5px;
+                  color: var(--ink-muted);
+                  font-family: var(--font-mono);
+                  line-height: 1.7;
+                "
+              >
+                Share this card through any channel. The recipient navigates
+                to the platform, copies the PGN, and decodes using
+                ChessCipher. The message data never travels directly.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+         ABOUT PAGE
+         ============================================================ -->
+        <div id="page-about" class="page">
+          <div class="main-wrap">
+            <div class="hero fade-up">
+              <div class="hero-pill">// 04 — Field Guide</div>
+              <h1 class="hero-title">How It Works</h1>
+              <p class="hero-sub">
+                Chess steganography — mathematically concealing information
+                inside legally playable games.
+              </p>
+            </div>
+            <div class="about-grid fade-up-2">
+              <div class="about-item">
+                <div class="about-item-title">
+                  <span style="font-size: 18px">♟</span> 01 · PGN Channel
+                </div>
+                <p>
+                  Text is converted to binary. At each position, legal moves
+                  are sorted alphabetically (deterministic). k =
+                  floor(log₂(N)) bits are encoded by choosing move index. The
+                  game looks natural: pawn moves, development, castling,
+                  captures. Works cross-platform — import into Chess.com,
+                  Lichess, or any PGN viewer.
+                </p>
+              </div>
+              <div class="about-item">
+                <div class="about-item-title">
+                  <span style="font-size: 18px">♛</span> 02 · Random FEN
+                  Secret Key
+                </div>
+                <p>
+                  The FEN channel never hides messages — it generates a
+                  random, fully legal chess position to use as a portable
+                  encryption key instead of a typed password. Only the
+                  visual arrangement of pieces matters for the key: whose
+                  turn it is, castling rights, en passant, and move
+                  counters are all ignored, since none of that is visible
+                  on a static picture of a board. Two people who
+                  independently arrive at the same-looking position, by
+                  any means (ChessCipher, Lichess, a printed diagram),
+                  always derive the exact same key — even if they typed
+                  or exported the rest of the FEN differently. Paste a
+                  generated FEN into the Key field on either the Encode or
+                  Decode page — the app detects it automatically and
+                  hashes the piece placement into the encryption key.
+                </p>
+              </div>
+              <div class="about-item">
+                <div class="about-item-title">
+                  <span style="font-size: 18px">&#128273;</span> 03 · Key
+                  System
+                </div>
+                <p>
+                  There's no separate mode switch to remember — it's
+                  entirely driven by the Key field.
+                  <b style="color: var(--ink)">Leave it blank</b> and the
+                  message encodes in public mode: no key, anyone can
+                  decode it.
+                  <b style="color: var(--ink)">Type or paste anything</b>
+                  into it — a password, or a FEN from the Random FEN
+                  Secret Key generator — and that's used to encrypt the
+                  message. The app checks automatically whether what you
+                  entered contains a recognizable FEN piece placement
+                  and, if so, derives the key from just that placement;
+                  otherwise it uses the text directly as a password. The
+                  same key field, checked the same
+                  way, is used on both the Encode and Decode page, so
+                  there's nothing that can get out of sync between them.
+                </p>
+              </div>
+              <div class="about-item">
+                <div class="about-item-title">
+                  <span style="font-size: 18px">&#127917;</span> 04 · Decoy
+                  System
+                </div>
+                <p>
+                  Wrong or missing key returns a plausible chess commentary
+                  message — never an error. Decoys are deterministic:
+                  hash(PGN + wrong_key) → same decoy every time. Three
+                  tiers: normal chess commentary (60%), mildly suspicious
+                  (30%), subtle troll (10%).
+                </p>
+              </div>
+              <div class="about-item">
+                <div class="about-item-title">
+                  <span style="font-size: 18px">&#11042;</span> 05 · Encoding
+                  Math
+                </div>
+                <p>
+                  At each chess position with N legal moves: k = ⌊log₂(N)⌋
+                  bits can be encoded by choosing a move index in [0, 2^k).
+                  This guarantees all chosen indices are valid moves. Moves
+                  are sorted by SAN notation to ensure identical ordering at
+                  encode and decode time. A 2-byte length prefix is
+                  prepended to the payload before bit-encoding, enabling
+                  exact message reconstruction regardless of trailing bits.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+         FOOTER
+         ============================================================ -->
+        <footer>
+          <span
+            >ChessCipher &mdash; All processing is client-side. No data
+            leaves your browser.</span
+          >
+          <div style="display: flex; gap: 16px">
+            <span
+              class="lnk"
+              onclick="
+                window.open('https://www.youtube.com/@Infopedia_Tube_', '_blank')
+              "
+              >Made by Infopedia Tube</span
+            >
+            <span>v2.0.0</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ============================================================
+     SUPPORT MODAL
+     ============================================================ -->
+    <div
+      class="modal-bg"
+      id="supportModal"
+      onclick="if (event.target === this) closeModal('supportModal');"
+    >
+      <div class="modal-box">
+        <button class="modal-close" onclick="closeModal('supportModal')">
+          &#215;
+        </button>
+        <div style="font-size: 32px; margin-bottom: 8px">&#9820;</div>
+        <div class="modal-title">Support ChessCipher</div>
+        <div class="modal-sub">
+          Help keep this project free and open. Every contribution matters.
+        </div>
+        <div
+          style="
+            font-size: 10.5px;
+            color: var(--ink-muted);
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+          "
+        >
+          UPI — tap to copy
+        </div>
+        <div class="upi-block" onclick="copyUPI()">
+          rabindrachoudhary125@oksbi
+        </div>
+        <div class="upi-copied" id="upiMsg"></div>
+        <button
+          class="btn btn-ghost"
+          style="width: 100%; margin-bottom: 8px; margin-top: 8px"
+          onclick="
+            window.open('https://www.youtube.com/@Infopedia_Tube_', '_blank')
+          "
+        >
+          Subscribe on YouTube &#8599;
+        </button>
+        <div
+          style="
+            font-size: 10px;
+            color: var(--ink-muted);
+            font-family: var(--font-mono);
+          "
+        >
+          Made by Infopedia Tube
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast">Copied!</div>
+
+    <script src="js/engine.js"></script>
+    <script src="js/pieces.js"></script>
+    <script src="js/ui.js"></script>
+  </body>
+</html>
